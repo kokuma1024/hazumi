@@ -15,9 +15,13 @@ async function callClaudeApi(payload) {
     throw new Error("ネットワークエラーが発生しました。接続を確認してください。");
   }
   if (res.status === 429) {
-    const retryAfter = res.headers.get("Retry-After");
-    const sec = retryAfter ? `${retryAfter}秒後に` : "しばらく後に";
-    throw new Error(`リクエストが多すぎます。${sec}もう一度お試しください。`);
+    const retryAfter = parseInt(res.headers.get("Retry-After") || "0");
+    let when;
+    if (retryAfter >= 3600) when = `${Math.round(retryAfter / 3600)}時間後に`;
+    else if (retryAfter >= 60) when = `${Math.round(retryAfter / 60)}分後に`;
+    else if (retryAfter > 0) when = `${retryAfter}秒後に`;
+    else when = "しばらく後に";
+    throw new Error(`リクエストが多すぎます。${when}もう一度お試しください。`);
   }
   if (res.status === 403) {
     throw new Error("アクセスが拒否されました（403）。");
@@ -89,7 +93,7 @@ async function callProMode(userText, conversationHistory) {
   // 会話履歴から過去に提案済みのロールを抽出
   const pastRoles = conversationHistory
     .filter(m => m.role === "assistant")
-    .flatMap(m => { try { const p = JSON.parse(m.content); return Array.isArray(p) ? p.map(c => c.role) : []; } catch { return []; } });
+    .flatMap(m => { try { const p = JSON.parse(m.content); if (Array.isArray(p)) return p.map(c => c.role); if (p.tasks && Array.isArray(p.tasks)) return p.tasks.map(c => c.role); return []; } catch { return []; } });
   const mentorCount = pastRoles.filter(r => r === "mentor").length;
   const uniquePast = [...new Set(pastRoles)];
   const pastRolesLine = uniquePast.length > 0 ? "\n[過去に提案済みのロール]: " + uniquePast.join(", ") : "";

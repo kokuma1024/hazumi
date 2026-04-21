@@ -11,6 +11,16 @@ const ALLOWED_ORIGINS = [
   'http://localhost:5173',
   'http://localhost:4173',
 ];
+// ALLOW_VERCEL_PREVIEW=true でプレビューデプロイ(hazumi-*.vercel.app)を許可
+const ALLOW_VERCEL_PREVIEW = process.env.ALLOW_VERCEL_PREVIEW === 'true';
+const VERCEL_PREVIEW_RE = /^https:\/\/hazumi-[\w-]+\.vercel\.app$/;
+
+function isOriginAllowed(origin) {
+  if (!origin) return true;
+  if (ALLOWED_ORIGINS.includes(origin)) return true;
+  if (ALLOW_VERCEL_PREVIEW && VERCEL_PREVIEW_RE.test(origin)) return true;
+  return false;
+}
 
 // モデルとmax_tokensは強制上書き(クライアント指定を信用しない)
 const ALLOWED_MODELS = new Set([
@@ -77,7 +87,7 @@ function checkRateLimit(ip) {
 }
 
 function corsHeaders(origin) {
-  const allowed = ALLOWED_ORIGINS.includes(origin) ? origin : '';
+  const allowed = isOriginAllowed(origin) ? origin : '';
   return {
     'Access-Control-Allow-Origin': allowed,
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
@@ -168,7 +178,7 @@ export default async function handler(req) {
   // 1. Origin検証(本番で未許可のドメインからのアクセスは拒否)
   //    localhostでのテスト時や、同一ドメインのSSR時はOriginヘッダが空になる場合があるため、
   //    空Originは許可(ただし本番では必ずOriginが付くブラウザ経由のみを想定)
-  if (origin && !ALLOWED_ORIGINS.includes(origin)) {
+  if (origin && !isOriginAllowed(origin)) {
     return jsonResponse({ error: 'Forbidden origin' }, 403, headers);
   }
 
