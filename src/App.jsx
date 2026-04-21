@@ -2,6 +2,32 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 
 const API_ENDPOINT = "/api/claude";
 
+// ─── API共通ラッパー ──────────────────────────────────────────────────────────
+async function callClaudeApi(payload) {
+  let res;
+  try {
+    res = await fetch(API_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+  } catch {
+    throw new Error("ネットワークエラーが発生しました。接続を確認してください。");
+  }
+  if (res.status === 429) {
+    const retryAfter = res.headers.get("Retry-After");
+    const sec = retryAfter ? `${retryAfter}秒後に` : "しばらく後に";
+    throw new Error(`リクエストが多すぎます。${sec}もう一度お試しください。`);
+  }
+  if (res.status === 403) {
+    throw new Error("アクセスが拒否されました（403）。");
+  }
+  if (!res.ok) {
+    throw new Error(`サーバーエラーが発生しました（${res.status}）。しばらく後にお試しください。`);
+  }
+  return res.json();
+}
+
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const PRO_ROLES = [
@@ -121,17 +147,12 @@ async function callProMode(userText, conversationHistory) {
   ].join("\n");
   const system = systemBody + systemFormat;
 
-  const res = await fetch(API_ENDPOINT, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 2000,
-      system,
-      messages: [...conversationHistory, { role: "user", content: userText }],
-    }),
+  const data = await callClaudeApi({
+    model: "claude-sonnet-4-20250514",
+    max_tokens: 2000,
+    system,
+    messages: [...conversationHistory, { role: "user", content: userText }],
   });
-  const data = await res.json();
   const text = (data.content || []).map(b => b.text || "").join("").replace(/```json|```/g, "").trim();
   try {
     const parsed = JSON.parse(text);
@@ -166,17 +187,12 @@ ${profile.description || "（未設定）"}
 - goalは「〜の状態になる」「〜が解決する」など、このタスクを完遂した先の具体的なゴールを1文で記載
 - tipsはこのタスクをうまく進めるためのコツ・注意点・効率化のヒントを1〜2文で記載`;
 
-  const res = await fetch(API_ENDPOINT, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 600,
-      system,
-      messages: [...conversationHistory, { role: "user", content: userText }],
-    }),
+  const data = await callClaudeApi({
+    model: "claude-sonnet-4-20250514",
+    max_tokens: 600,
+    system,
+    messages: [...conversationHistory, { role: "user", content: userText }],
   });
-  const data = await res.json();
   const text = (data.content || []).map(b => b.text || "").join("").replace(/```json|```/g, "").trim();
   try { return JSON.parse(text); }
   catch { return { action: "状況をノートに書き出して俯瞰する", minutes: 5, reason: "自分の軸に立ち返ることが先決です", next: "" }; }
@@ -1165,24 +1181,28 @@ export default function Hazumi() {
     setMessages(prev => [...prev, { id: userMsgId, type: "user", text, ts: fmtTime() }]);
     setLoading(true);
 
-    if (mode === "pro") {
-      const cards = await callProMode(text, apiHistory.current);
-      apiHistory.current.push({ role: "user", content: text });
-      apiHistory.current.push({ role: "assistant", content: JSON.stringify(cards) });
-      const proCards = cards.tasks || cards;
-      setMessages(prev => [...prev, { id: Date.now(), type: "pro", userText: text, cards: proCards, roadmap: cards.roadmap || "", summary: cards.summary || "", ts: fmtTime() }]);
-    } else {
-      if (!visionProfile.description) {
-        setMessages(prev => [...prev, { id: Date.now(), type: "notice", text: "ビジョンプロファイルが未設定です。メニューから設定してください。" }]);
-        setLoading(false);
-        return;
+    try {
+      if (mode === "pro") {
+        const cards = await callProMode(text, apiHistory.current);
+        apiHistory.current.push({ role: "user", content: text });
+        apiHistory.current.push({ role: "assistant", content: JSON.stringify(cards) });
+        const proCards = cards.tasks || cards;
+        setMessages(prev => [...prev, { id: Date.now(), type: "pro", userText: text, cards: proCards, roadmap: cards.roadmap || "", summary: cards.summary || "", ts: fmtTime() }]);
+      } else {
+        if (!visionProfile.description) {
+          setMessages(prev => [...prev, { id: Date.now(), type: "notice", text: "ビジョンプロファイルが未設定です。メニューから設定してください。" }]);
+          return;
+        }
+        const result = await callVisionMode(text, visionProfile, apiHistory.current);
+        apiHistory.current.push({ role: "user", content: text });
+        apiHistory.current.push({ role: "assistant", content: JSON.stringify(result) });
+        setMessages(prev => [...prev, { id: Date.now(), type: "vision", userText: text, result, resolved: null, actualSec: 0, ts: fmtTime() }]);
       }
-      const result = await callVisionMode(text, visionProfile, apiHistory.current);
-      apiHistory.current.push({ role: "user", content: text });
-      apiHistory.current.push({ role: "assistant", content: JSON.stringify(result) });
-      setMessages(prev => [...prev, { id: Date.now(), type: "vision", userText: text, result, resolved: null, actualSec: 0, ts: fmtTime() }]);
+    } catch (err) {
+      setMessages(prev => [...prev, { id: Date.now(), type: "notice", text: err.message }]);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, [input, loading, mode, visionProfile]);
 
   // ビジョン完了 → 次の提案
@@ -1197,10 +1217,15 @@ export default function Hazumi() {
     apiHistory.current.push({ role: "user", content: prompt });
     setMessages(prev => [...prev, { id: Date.now() + "_u", type: "user", text: "✓ 完了 → 次は？", ts: fmtTime() }]);
     setLoading(true);
-    const nextResult = await callVisionMode(prompt, visionProfile, apiHistory.current);
-    setLoading(false);
-    apiHistory.current.push({ role: "assistant", content: JSON.stringify(nextResult) });
-    setMessages(prev => [...prev, { id: Date.now(), type: "vision", userText: prompt, result: nextResult, resolved: null, actualSec: 0, ts: fmtTime() }]);
+    try {
+      const nextResult = await callVisionMode(prompt, visionProfile, apiHistory.current);
+      apiHistory.current.push({ role: "assistant", content: JSON.stringify(nextResult) });
+      setMessages(prev => [...prev, { id: Date.now(), type: "vision", userText: prompt, result: nextResult, resolved: null, actualSec: 0, ts: fmtTime() }]);
+    } catch (err) {
+      setMessages(prev => [...prev, { id: Date.now(), type: "notice", text: err.message }]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleVisionPend = (id, elapsed) => {
@@ -1228,11 +1253,16 @@ export default function Hazumi() {
     const prompt = "その案は合わないので、別のアプローチで提案してください。";
     apiHistory.current.push({ role: "user", content: prompt });
     setLoading(true);
-    const result = await callVisionMode(prompt, visionProfile, apiHistory.current);
-    setLoading(false);
-    apiHistory.current.push({ role: "assistant", content: JSON.stringify(result) });
-    const item = messages.find(m => m.id === id);
-    setMessages(prev => [...prev, { id: Date.now(), type: "vision", userText: item?.userText || "", result, resolved: null, actualSec: 0 }]);
+    try {
+      const result = await callVisionMode(prompt, visionProfile, apiHistory.current);
+      apiHistory.current.push({ role: "assistant", content: JSON.stringify(result) });
+      const item = messages.find(m => m.id === id);
+      setMessages(prev => [...prev, { id: Date.now(), type: "vision", userText: item?.userText || "", result, resolved: null, actualSec: 0 }]);
+    } catch (err) {
+      setMessages(prev => [...prev, { id: Date.now(), type: "notice", text: err.message }]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleProDone = async (roleId, elapsed, card, note = "") => {
@@ -1243,11 +1273,16 @@ export default function Hazumi() {
     apiHistory.current.push({ role: "user", content: prompt });
     setMessages(prev => [...prev, { id: Date.now() + "_u", type: "user", text: `✓ ${roleDef?.name || ""}完了 → 次は？`, ts: fmtTime() }]);
     setLoading(true);
-    const cards = await callProMode(prompt, apiHistory.current);
-    setLoading(false);
-    apiHistory.current.push({ role: "assistant", content: JSON.stringify(cards) });
-    const proCards2 = cards.tasks || cards;
-    setMessages(prev => [...prev, { id: Date.now(), type: "pro", userText: prompt, cards: proCards2, roadmap: cards.roadmap || "", summary: cards.summary || "", ts: fmtTime() }]);
+    try {
+      const cards = await callProMode(prompt, apiHistory.current);
+      apiHistory.current.push({ role: "assistant", content: JSON.stringify(cards) });
+      const proCards2 = cards.tasks || cards;
+      setMessages(prev => [...prev, { id: Date.now(), type: "pro", userText: prompt, cards: proCards2, roadmap: cards.roadmap || "", summary: cards.summary || "", ts: fmtTime() }]);
+    } catch (err) {
+      setMessages(prev => [...prev, { id: Date.now(), type: "notice", text: err.message }]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleProPend = (card, userText, elapsed) => {
@@ -1257,7 +1292,7 @@ export default function Hazumi() {
       action: card.action, minutes: card.minutes,
       reason: card.reason || "", tools: card.tools || "",
       goal: card.goal || "", tips: card.tips || "",
-      next: card.next || "",
+      next: card.next || "", steps: card.steps || [],
       actualSec: elapsed, proRole: card.role,
       savedAt: fmtDate(),
       historySnapshot,
@@ -1276,7 +1311,7 @@ export default function Hazumi() {
     const base = keepMessages ? messages : [];
     const resumeHistory = item.historySnapshot || [];
     if (itemMode === "pro") {
-      const card = { role: item.proRole, action: item.action, minutes: item.minutes, reason: item.reason || "", tools: item.tools || "", goal: item.goal || "", tips: item.tips || "", next: item.next || "" };
+      const card = { role: item.proRole, action: item.action, minutes: item.minutes, reason: item.reason || "", tools: item.tools || "", goal: item.goal || "", tips: item.tips || "", next: item.next || "", steps: item.steps || [] };
       setMessages([
         ...base,
         { id: Date.now() + "_ctx", type: "context", historySnapshot: resumeHistory, userText: item.userText, savedAt: item.savedAt },
@@ -1328,7 +1363,7 @@ export default function Hazumi() {
             const c = cards[0];
             const newId = m.id + "_home_" + c.role;
             if (!existingIds.has(String(newId))) {
-              toAdd.push({ id: newId, userText: m.userText, action: c.action, minutes: c.minutes, actualSec: 0, proRole: c.role, savedAt: fmtDate() });
+              toAdd.push({ id: newId, userText: m.userText, action: c.action, minutes: c.minutes, steps: c.steps || [], actualSec: 0, proRole: c.role, savedAt: fmtDate() });
             }
           }
         }
@@ -1571,7 +1606,7 @@ export default function Hazumi() {
                         setPendingItems(p => [...p, { id: m.id, userText: m.userText, action: m.result.action, minutes: m.result.minutes, actualSec: 0, proRole: null, savedAt: fmtDate() }]);
                       } else if (m.type === "pro") {
                         m.cards?.filter(c => !c.resolved).forEach(c => {
-                          setPendingItems(p => [...p, { id: Date.now() + Math.random(), userText: m.userText, action: c.action, minutes: c.minutes, actualSec: 0, proRole: c.role, savedAt: fmtDate() }]);
+                          setPendingItems(p => [...p, { id: Date.now() + Math.random(), userText: m.userText, action: c.action, minutes: c.minutes, steps: c.steps || [], actualSec: 0, proRole: c.role, savedAt: fmtDate() }]);
                         });
                       }
                     });
@@ -1608,19 +1643,24 @@ export default function Hazumi() {
             apiHistory.current = [];
             setMessages(prev => [...prev, { id: Date.now() + "_u", type: "user", text: `✏ 修正して再提案: ${newText}`, ts: fmtTime() }]);
             setLoading(true);
-            if (itemMode === "pro") {
-              const retryCards = await callProMode(newText, apiHistory.current);
-              apiHistory.current.push({ role: "user", content: newText });
-              apiHistory.current.push({ role: "assistant", content: JSON.stringify(retryCards) });
-              const retryProCards = retryCards.tasks || retryCards;
-              setMessages(prev => [...prev, { id: Date.now(), type: "pro", userText: newText, cards: retryProCards, roadmap: retryCards.roadmap || "", summary: retryCards.summary || "" }]);
-            } else {
-              const nextResult = await callVisionMode(newText, visionProfile, apiHistory.current);
-              apiHistory.current.push({ role: "user", content: newText });
-              apiHistory.current.push({ role: "assistant", content: JSON.stringify(nextResult) });
-              setMessages(prev => [...prev, { id: Date.now(), type: "vision", userText: newText, result: nextResult, resolved: null, actualSec: 0 }]);
+            try {
+              if (itemMode === "pro") {
+                const retryCards = await callProMode(newText, apiHistory.current);
+                apiHistory.current.push({ role: "user", content: newText });
+                apiHistory.current.push({ role: "assistant", content: JSON.stringify(retryCards) });
+                const retryProCards = retryCards.tasks || retryCards;
+                setMessages(prev => [...prev, { id: Date.now(), type: "pro", userText: newText, cards: retryProCards, roadmap: retryCards.roadmap || "", summary: retryCards.summary || "" }]);
+              } else {
+                const nextResult = await callVisionMode(newText, visionProfile, apiHistory.current);
+                apiHistory.current.push({ role: "user", content: newText });
+                apiHistory.current.push({ role: "assistant", content: JSON.stringify(nextResult) });
+                setMessages(prev => [...prev, { id: Date.now(), type: "vision", userText: newText, result: nextResult, resolved: null, actualSec: 0 }]);
+              }
+            } catch (err) {
+              setMessages(prev => [...prev, { id: Date.now(), type: "notice", text: err.message }]);
+            } finally {
+              setLoading(false);
             }
-            setLoading(false);
           }}
           onDelete={id => setPendingItems(prev => prev.filter(p => p.id !== id))}
           onClose={() => setShowPending(false)} />
