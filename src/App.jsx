@@ -39,6 +39,21 @@ async function callClaudeApi(payload) {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
+const PRO_LOADING_MSGS = [
+  "状況を分析中…",
+  "クライシス視点を確認中…",
+  "リスクを評価中…",
+  "最適なロールを選別中…",
+  "アクションを組み立て中…",
+];
+
+const VISION_LOADING_MSGS = [
+  "プロファイルを参照中…",
+  "あなたの軸から判断中…",
+  "最善手を探している…",
+  "タスクを構成中…",
+];
+
 const PRO_ROLES = [
   { id: "crisis",   name: "クライシス",   en: "Crisis Manager",     emoji: "🚨", color: "#dc2626", desc: "人命・法的リスク・重大損失を避けるための最短初動" },
   { id: "risk",     name: "リスク",       en: "Risk Manager",       emoji: "🛡", color: "#d97706", desc: "証跡確保・コンプライアンス・安全性重視の手順" },
@@ -1158,6 +1173,7 @@ export default function Hazumi() {
   const [pendingItems, setPendingItems] = useState(saved?.pendingItems || []);
   const [input, setInput]     = useState("");
   const [loading, setLoading] = useState(false);
+  const [loadingText, setLoadingText] = useState("");
   const [showMenu, setShowMenu]   = useState(false);
   const [showPending, setShowPending] = useState(false);
   const [showVisionEdit, setShowVisionEdit] = useState(false);
@@ -1182,6 +1198,14 @@ export default function Hazumi() {
     prevMsgLen.current = messages.length;
   }, [messages]);
   useEffect(() => { saveState({ mode, visionProfile, pendingItems }); }, [mode, visionProfile, pendingItems]);
+  useEffect(() => {
+    if (!loading) { setLoadingText(""); return; }
+    const msgs = mode === "pro" ? PRO_LOADING_MSGS : VISION_LOADING_MSGS;
+    setLoadingText(msgs[0]);
+    let i = 1;
+    const id = setInterval(() => { setLoadingText(msgs[i % msgs.length]); i++; }, 1500);
+    return () => clearInterval(id);
+  }, [loading, mode]);
 
   // モード切替時にチャットリセット
   const handleSetMode = (m) => {
@@ -1537,7 +1561,7 @@ export default function Hazumi() {
           <div style={S.loadingWrap}>
             {[0, 0.15, 0.3].map((d, i) => <span key={i} style={{ ...S.dot, animationDelay: `${d}s` }} />)}
             <span style={{ fontSize: 12, color: "#94a3b8", marginLeft: 4 }}>
-              {mode === "pro" ? "ロールを選別中…" : "プロファイルから判断中…"}
+              {loadingText}
             </span>
           </div>
         )}
