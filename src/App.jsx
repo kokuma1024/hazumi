@@ -93,7 +93,7 @@ function playAlert() {
   } catch {}
 }
 
-// ─── API: プロモード（並列ロール自動選別） ────────────────────────────────────
+// ─── API: プロモード(並列ロール自動選別) ────────────────────────────────────
 async function callProMode(userText, conversationHistory) {
   // 会話履歴から過去に提案済みのロールを抽出
   const pastRoles = conversationHistory
@@ -103,11 +103,11 @@ async function callProMode(userText, conversationHistory) {
   const uniquePast = [...new Set(pastRoles)];
   const pastRolesLine = uniquePast.length > 0 ? "\n[過去に提案済みのロール]: " + uniquePast.join(", ") : "";
   const mentorLine = mentorCount >= 2
-    ? "\n[参考] mentorはすでに" + mentorCount + "回提案済みです。ユーザーが落ち着いてきた様子であれば、今回は解決系ロール（crisis/risk/exec/cs/architect/specialist）を優先してください。ただし心理的動揺が続いているなら引き続きmentorを含めてください。"
+    ? "\n[参考] mentorはすでに" + mentorCount + "回提案済みです。ユーザーが落ち着いてきた様子であれば、今回は解決系ロール(crisis/risk/exec/cs/architect/specialist)を優先してください。ただし心理的動揺が続いているなら引き続きmentorを含めてください。"
     : "";
 
   const systemBody = [
-    "あなたはHAZUMI（行動支援AIコーチ）です。ユーザーの課題と会話の流れを分析し、7つのロールから今この瞬間に最適な2〜4つを選別して即実行可能なアクションを提案してください。",
+    "あなたはHAZUMI(行動支援AIコーチ)です。ユーザーの課題と会話の流れを分析し、7つのロールから今この瞬間に最適な2〜4つを選別して即実行可能なアクションを提案してください。",
     pastRolesLine,
     mentorLine,
     "",
@@ -118,7 +118,7 @@ async function callProMode(userText, conversationHistory) {
     "- cs: カスタマーサクセス。依頼主・後工程の負担を先回りして解消",
     "- architect: アーキテクト。再利用性・仕組み化を視野に入れた根本的工程",
     "- specialist: スペシャリスト。専門的完成度・論理的整合性の緻密な検証",
-    "- mentor: メンター。心理的動揺・パニック時に冷静さを取り戻す内省タスク（多用禁止）",
+    "- mentor: メンター。心理的動揺・パニック時に冷静さを取り戻す内省タスク(多用禁止)",
     "",
     "選別ルール:",
     "- 状況・感情・フェーズに応じて最適なロールを選ぶ。文脈に合わないロールは省略",
@@ -129,28 +129,28 @@ async function callProMode(userText, conversationHistory) {
     "- 企画・戦略系 → exec/architect",
     "- 技術・制作系 → specialist/architect",
     "- 対人・顧客系 → cs/exec",
-    "- 過去に同じロールが続いている場合は別のロールも検討する（ただし状況に合えば継続してよい）",
+    "- 過去に同じロールが続いている場合は別のロールも検討する(ただし状況に合えば継続してよい)",
     "",
-    "- 各actionは動詞始まりの1行（句点なし）",
-    "- minutesは整数（最低1）",
+    "- 各actionは動詞始まりの1行(句点なし)",
+    "- minutesは整数(最低1)",
     "- 必ずJSONのみ返す。説明文・マークダウン不要",
   ].join("\n");
   const systemFormat = [
     "",
-    "出力フォーマットはJSONオブジェクト1つ（配列ではない）:",
+    "出力フォーマットはJSONオブジェクト1つ(配列ではない):",
     "{",
-    '  "roadmap": "状況解決に向けた簡潔なロードマップ（2〜4ステップを矢印でつなぐ。例: 初動対応 → 証跡確保 → 上司報告 → 再発防止）",',
+    '  "roadmap": "状況解決に向けた簡潔なロードマップ(2〜4ステップを矢印でつなぐ。例: 初動対応 → 証跡確保 → 上司報告 → 再発防止)",',
     '  "summary": "今この状況でなぜこれらのタスクが必要かを1〜2文で説明",',
-    '  "tasks": [{"role":"crisis","priority":"高","action":"〇〇する","minutes":3,"reason":"理由1文","tools":"必要なもの","goal":"最終的な状態1文","tips":"攻略ポイント・コツを1〜2文","next":"次の方向性（省略可）","steps":[{"action":"まず〇〇を用意する","seconds":15},{"action":"〇〇を書き出す","seconds":120},{"action":"〇〇する","seconds":60}]}]',
+    '  "tasks": [{"role":"crisis","priority":"高","action":"〇〇する","minutes":3,"reason":"理由1文","tools":"必要なもの","goal":"最終的な状態1文","tips":"攻略ポイント・コツを1〜2文","next":"次の方向性(省略可)","steps":[{"action":"まず〇〇を用意する","seconds":15},{"action":"〇〇を書き出す","seconds":120},{"action":"〇〇する","seconds":60}]}]',
     "}",
     '- priorityは "高"/"中"/"低" のいずれか',
     "- toolsは実行に必要な道具・環境・アプリを簡潔に記載。不要な場合はなしと記載",
     "- goalは完遂した先の具体的なゴールを1文で",
     "- tipsはこのタスクをうまく進めるためのコツ・注意点・効率化のヒントを1〜2文で",
     "- stepsは必ず2要素の配列: [助走, メインタスク]",
-    "- stepsの1番目: 誰でも即できる準備アクション（seconds:10〜30）例:「ノートとペンを用意する」「アプリを開く」「メモ帳に件名だけ書く」",
-    "- stepsの2番目: メインタスクそのもの（seconds: minutes×60）",
-    "- secondsは整数（秒数）",
+    "- stepsの1番目: 誰でも即できる準備アクション(seconds:10〜30)例:「ノートとペンを用意する」「アプリを開く」「メモ帳に件名だけ書く」",
+    "- stepsの2番目: メインタスクそのもの(seconds: minutes×60)",
+    "- secondsは整数(秒数)",
     '- tasksはpriority "高"→"中"→"低" の順で並べること',
     "- JSONのみ出力。説明文・マークダウン不要",
   ].join("\n");
@@ -177,21 +177,21 @@ async function callProMode(userText, conversationHistory) {
   }
 }
 
-// ─── API: ビジョンモード（プロファイルベース1提案） ─────────────────────────
+// ─── API: ビジョンモード(プロファイルベース1提案) ─────────────────────────
 async function callVisionMode(userText, profile, conversationHistory) {
   const system = `あなたは「${profile.name || "理想の自分"}」というロールのタスクコーチです。
 
 プロファイル:
-${profile.description || "（未設定）"}
+${profile.description || "(未設定)"}
 
 このプロファイルが持つ美学・中長期的な目標・価値観に沿って、ユーザーの課題に対し今すぐ実行できる最善手を1つだけ提案してください。
 
 ルール:
-- actionは動詞始まりの1行（句点なし）
-- minutesは整数（最低1）
+- actionは動詞始まりの1行(句点なし)
+- minutesは整数(最低1)
 - 必ずJSONのみ返す
 
-{"action":"〇〇する","minutes":5,"reason":"理由1文","tools":"必要なもの（例: ノート、PC）","goal":"このタスクをこなすと最終的にどうなるか1文","tips":"攻略ポイント・コツを1〜2文","next":"次の方向性（省略可）"}
+{"action":"〇〇する","minutes":5,"reason":"理由1文","tools":"必要なもの(例: ノート、PC)","goal":"このタスクをこなすと最終的にどうなるか1文","tips":"攻略ポイント・コツを1〜2文","next":"次の方向性(省略可)"}
 - toolsは実行に必要な道具・環境・アプリを簡潔に記載。不要なら"なし"
 - goalは「〜の状態になる」「〜が解決する」など、このタスクを完遂した先の具体的なゴールを1文で記載
 - tipsはこのタスクをうまく進めるためのコツ・注意点・効率化のヒントを1〜2文で記載`;
@@ -279,7 +279,7 @@ function useStepTimer(steps, onAllComplete) {
 // カウントダウン方式: remaining = estimatedSec - elapsed (0を下回ると超過)
 function useTimer(onOver) {
   const [phase, setPhase]     = useState("idle");
-  const [elapsed, setElapsed] = useState(0);   // 経過秒（内部計算用）
+  const [elapsed, setElapsed] = useState(0);   // 経過秒(内部計算用)
   const [flash, setFlash]     = useState(false);
   const startRef = useRef(null);
   const rafRef   = useRef(null);
@@ -319,7 +319,7 @@ function useTimer(onOver) {
   return { phase, setPhase, elapsed, remaining, flash, start, stop };
 }
 
-// ─── SingleActionCard（ビジョン用・従来と同じ1提案） ─────────────────────────
+// ─── SingleActionCard(ビジョン用・従来と同じ1提案) ─────────────────────────
 function SingleActionCard({ result, accentColor, onDone, onPend, onRetry }) {
   const estimatedSec = Math.max((result.minutes || 5) * 60, 60);
   const { phase, setPhase, elapsed, remaining, flash, start, stop } = useTimer();
@@ -416,7 +416,7 @@ function SingleActionCard({ result, accentColor, onDone, onPend, onRetry }) {
       {phase === "supplement" && (
         <div style={{ marginTop: 8 }}>
           <div style={{ fontSize: 12, color: "#64748b", marginBottom: 8, lineHeight: 1.6 }}>
-            完了の補足を入力してください（例: やろうとしたけど別の問題が発生した、半分しかできなかった）
+            完了の補足を入力してください(例: やろうとしたけど別の問題が発生した、半分しかできなかった)
           </div>
           <textarea
             style={{ ...S.supplementArea }}
@@ -468,7 +468,7 @@ function SingleActionCard({ result, accentColor, onDone, onPend, onRetry }) {
           <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
             <button style={{ ...S.primaryBtn, background: accentColor, width:"100%" }}
               onClick={() => { setPhase("running"); start(estimatedSec, elapsed); }}>
-              ▶ 続きから再開（{fmt(elapsed)} 経過）
+              ▶ 続きから再開({fmt(elapsed)} 経過)
             </button>
             <button style={{ ...S.primaryBtn, background: "#94a3b8", width:"100%" }}
               onClick={() => { setPhase("running"); start(estimatedSec, 0); }}>
@@ -481,11 +481,11 @@ function SingleActionCard({ result, accentColor, onDone, onPend, onRetry }) {
   );
 }
 
-// ─── ProRoleCard（プロモード各ロールのカード） ────────────────────────────────
+// ─── ProRoleCard(プロモード各ロールのカード) ────────────────────────────────
 function ProRoleCard({ item, collapsed, compact, onDone, onPend, onStart }) {
   const roleDef = PRO_ROLES.find(r => r.id === item.role) || PRO_ROLES[2];
   const estimatedSec = Math.max((item.minutes || 5) * 60, 60);
-  const { phase, setPhase, flash: timerFlash, start: timerStart, stop: timerStop } = useTimer();
+  const { phase, setPhase } = useTimer();
   const [supplement, setSupplement] = useState("");
   const [showDetail, setShowDetail] = useState(false);
   const [compactExpanded, setCompactExpanded] = useState(false);
@@ -499,7 +499,7 @@ function ProRoleCard({ item, collapsed, compact, onDone, onPend, onStart }) {
     onDone(item.role, totalElapsed, item, "");
   });
 
-  const flash = stepTimer.flash || timerFlash;
+  const flash = stepTimer.flash;
   const handleStart = () => { onStart(); setPhase("running"); stepTimer.start(); };
   const handleDone  = (note = "") => { stepTimer.stop(); setPhase("done"); onDone(item.role, stepTimer.elapsed, item, note); };
   const handlePend  = () => {
@@ -516,7 +516,7 @@ function ProRoleCard({ item, collapsed, compact, onDone, onPend, onStart }) {
   if (compact && phase === "idle") {
     return (
       <div style={{ ...S.proCard, borderLeftColor: roleDef.color, overflow: "hidden" }}>
-        {/* ヘッダー（常に表示） */}
+        {/* ヘッダー(常に表示) */}
         <div style={{ cursor: "pointer" }} onClick={() => setCompactExpanded(v => !v)}>
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
             {item.priority && (
@@ -532,7 +532,7 @@ function ProRoleCard({ item, collapsed, compact, onDone, onPend, onStart }) {
             <span style={{ ...S.minPill, background: roleDef.color + "15", color: roleDef.color, marginLeft: "auto", flexShrink: 0 }}>⏱ {item.minutes}分</span>
           </div>
           <div style={S.proAction}>{item.action}</div>
-          {/* 助走（コンパクト時も常に表示） */}
+          {/* 助走(コンパクト時も常に表示) */}
           {item.steps?.length > 0 && steps[0] && !compactExpanded && (
             <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 6 }}>
               <span style={{ fontSize: 9, fontWeight: 800, color: "white", background: roleDef.color, borderRadius: 20, padding: "1px 7px", flexShrink: 0 }}>助走</span>
@@ -546,7 +546,7 @@ function ProRoleCard({ item, collapsed, compact, onDone, onPend, onStart }) {
             {compactExpanded ? "▲ 閉じる" : "▼ 詳細を見る"}
           </div>
         </div>
-        {/* 詳細（max-heightでアニメーション） */}
+        {/* 詳細(max-heightでアニメーション) */}
         <div style={{
           maxHeight: compactExpanded ? "600px" : "0px",
           overflow: "hidden",
@@ -571,7 +571,7 @@ function ProRoleCard({ item, collapsed, compact, onDone, onPend, onStart }) {
                 <span style={S.toolsTxt}>{item.tools}</span>
               </div>
             )}
-            {/* 助走：始めるボタン直上 */}
+            {/* 助走:始めるボタン直上 */}
             {item.steps?.length > 0 && steps[0] && (
               <div style={{ display: "flex", alignItems: "center", gap: 6, background: roleDef.color + "08", border: `1px solid ${roleDef.color}30`, borderRadius: 10, padding: "8px 10px", marginBottom: 8 }}>
                 <span style={{ fontSize: 10, fontWeight: 800, color: "white", background: roleDef.color, borderRadius: 20, padding: "1px 7px", flexShrink: 0 }}>助走</span>
@@ -593,7 +593,7 @@ function ProRoleCard({ item, collapsed, compact, onDone, onPend, onStart }) {
     );
   }
 
-  // 折りたたみ状態（他が実行中）
+  // 折りたたみ状態(他が実行中)
   if (collapsed && phase === "idle") {
     return (
       <div style={{ ...S.proCard, borderLeftColor: roleDef.color, opacity: 0.45 }}>
@@ -660,7 +660,7 @@ function ProRoleCard({ item, collapsed, compact, onDone, onPend, onStart }) {
               <span style={S.toolsTxt}>{item.tools}</span>
             </div>
           )}
-          {/* 助走：始めるボタンの直上 */}
+          {/* 助走:始めるボタンの直上 */}
           {item.steps?.length > 0 && steps[0] && (
             <div style={{ display: "flex", alignItems: "center", gap: 6, background: roleDef.color + "08", border: `1px solid ${roleDef.color}30`, borderRadius: 10, padding: "8px 10px", marginBottom: 8 }}>
               <span style={{ fontSize: 10, fontWeight: 800, color: "white", background: roleDef.color, borderRadius: 20, padding: "1px 7px", flexShrink: 0 }}>助走</span>
@@ -767,7 +767,7 @@ function ProRoleCard({ item, collapsed, compact, onDone, onPend, onStart }) {
           />
           <div style={S.btnRow}>
             <button style={{ ...S.primaryBtn, background: roleDef.color, flex:2 }}
-              onClick={() => { stop(); handleDone(supplement); }}>
+              onClick={() => { stepTimer.stop(); handleDone(supplement); }}>
               この内容で完了
             </button>
             <button style={S.ghostBtn} onClick={() => setPhase("running")}>戻る</button>
@@ -778,14 +778,14 @@ function ProRoleCard({ item, collapsed, compact, onDone, onPend, onStart }) {
       {phase === "done" && (
         <div style={S.resolvedRow}>
           <span style={{ color: roleDef.color, fontWeight: 700, fontSize: 13 }}>✓ 完了</span>
-          <span style={S.resolvedSub}>実測 {fmt(elapsed)} / 予想 {item.minutes}分</span>
+          <span style={S.resolvedSub}>実測 {fmt(stepTimer.elapsed)} / 予想 {item.minutes}分</span>
         </div>
       )}
       {phase === "pended" && (
         <div style={{ marginTop: 6 }}>
           <div style={{ ...S.resolvedRow, marginBottom: 10 }}>
             <span style={{ color: "#94a3b8", fontSize: 13, fontWeight: 600 }}>⏸ 保留中</span>
-            {pendedElapsed > 0 && <span style={S.resolvedSub}>中断時点 {fmt(pendedElapsed)}（{pendedStepIdx === 0 ? "助走" : "メインタスク"}）</span>}
+            {pendedElapsed > 0 && <span style={S.resolvedSub}>中断時点 {fmt(pendedElapsed)}({pendedStepIdx === 0 ? "助走" : "メインタスク"})</span>}
           </div>
           {hasDetail && (
             <div style={{ marginBottom: 10 }}>
@@ -805,11 +805,11 @@ function ProRoleCard({ item, collapsed, compact, onDone, onPend, onStart }) {
           <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
             <button style={{ ...S.primaryBtn, background: roleDef.color, width:"100%" }}
               onClick={() => { setPhase("running"); stepTimer.resumeAt(pendedStepIdx, pendedElapsed); }}>
-              ▶ 続きから再開（{fmt(pendedElapsed)} 経過）
+              ▶ 続きから再開({fmt(pendedElapsed)} 経過)
             </button>
             <button style={{ ...S.primaryBtn, background: "#94a3b8", width:"100%" }}
               onClick={() => { setPhase("running"); stepTimer.start(); }}>
-              ■ 始めから開始（助走から）
+              ■ 始めから開始(助走から)
             </button>
           </div>
         </div>
@@ -818,7 +818,7 @@ function ProRoleCard({ item, collapsed, compact, onDone, onPend, onStart }) {
   );
 }
 
-// ─── ProResultGroup（プロモードの並列提案グループ） ──────────────────────────
+// ─── ProResultGroup(プロモードの並列提案グループ) ──────────────────────────
 function ProResultGroup({ group, onDone, onPend }) {
   const [activeIdx, setActiveIdx] = useState(null);
   const [doneIdx, setDoneIdx] = useState(null);
@@ -865,7 +865,7 @@ function ProResultGroup({ group, onDone, onPend }) {
   );
 }
 
-// ─── ContextBubble（再開時の経緯パネル） ────────────────────────────────────────
+// ─── ContextBubble(再開時の経緯パネル) ────────────────────────────────────────
 function ContextBubble({ msg }) {
   const [open, setOpen] = useState(false);
   const history = msg.historySnapshot || [];
@@ -964,7 +964,7 @@ function MenuDrawer({ mode, onSetMode, visionProfile, onEditVision, pendingCount
               {/* 「保留タスク」ラベルをクリックで一覧を開く */}
               <button style={{ ...S.drawerSection, paddingBottom: 8, background: "transparent", border: "none", cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%" }}
                 onClick={() => { onShowPending(); onClose(); }}>
-                <span>保留タスク（{pendingCount}件）</span>
+                <span>保留タスク({pendingCount}件)</span>
                 <span style={{ fontSize: 11, color: "#94a3b8" }}>一覧 →</span>
               </button>
               {/* 各タスクをタップ → チャットで再開 */}
@@ -1058,7 +1058,7 @@ function PendCardDetail({ item, accent, onResume, onEdit, onConfirmDelete }) {
         <div style={{ marginBottom: 10 }}>
           <button style={{ background: "transparent", border: "none", fontSize: 11, color: "#94a3b8", cursor: "pointer", fontFamily: "inherit", fontWeight: 600, padding: "3px 0", display: "flex", alignItems: "center", gap: 4 }}
             onClick={() => setShowHistory(v => !v)}>
-            {showHistory ? "▲" : "▼"} 経緯を{showHistory ? "閉じる" : "振り返る"}（{history.length}件）
+            {showHistory ? "▲" : "▼"} 経緯を{showHistory ? "閉じる" : "振り返る"}({history.length}件)
           </button>
           {showHistory && (
             <div style={{ marginTop: 6, borderLeft: "2px solid #e2e8f0", paddingLeft: 10, display: "flex", flexDirection: "column", gap: 6 }}>
@@ -1103,7 +1103,7 @@ function PendingSheet({ items, onResume, onEditAndRetry, onDelete, onClose }) {
           const target = items.find(i => i.id === confirmDeleteId);
           return (
             <div style={{ background: "#fff5f5", border: "1px solid #fca5a5", borderRadius: 14, padding: "14px 16px", marginBottom: 12 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "#dc2626", marginBottom: 6 }}>このタスクを削除しますか？</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#dc2626", marginBottom: 6 }}>このタスクを削除しますか?</div>
               <div style={{ fontSize: 12, color: "#64748b", marginBottom: 12, lineHeight: 1.5 }}>
                 {target?.action}
               </div>
@@ -1235,7 +1235,7 @@ export default function Hazumi() {
       ? `前のタスクが完了しました。次は「${nextHint}」について具体的な最善手をお願いします。${noteClause}`
       : `前のタスクが完了しました。次に取り組むべき最善手を提案してください。${noteClause}`;
     apiHistory.current.push({ role: "user", content: prompt });
-    setMessages(prev => [...prev, { id: uniqueId(), type: "user", text: "✓ 完了 → 次は？", ts: fmtTime() }]);
+    setMessages(prev => [...prev, { id: uniqueId(), type: "user", text: "✓ 完了 → 次は?", ts: fmtTime() }]);
     setLoading(true);
     try {
       const nextResult = await callVisionMode(prompt, visionProfile, apiHistory.current);
@@ -1291,7 +1291,7 @@ export default function Hazumi() {
 補足: ${note}` : "";
     const prompt = `「${roleDef?.name || roleId}」の視点でのタスクが完了しました。同じ視点で次に取り組むべき最善手を1つ提案してください。${noteClause}`;
     apiHistory.current.push({ role: "user", content: prompt });
-    setMessages(prev => [...prev, { id: uniqueId(), type: "user", text: `✓ ${roleDef?.name || ""}完了 → 次は？`, ts: fmtTime() }]);
+    setMessages(prev => [...prev, { id: uniqueId(), type: "user", text: `✓ ${roleDef?.name || ""}完了 → 次は?`, ts: fmtTime() }]);
     setLoading(true);
     try {
       const cards = await callProMode(prompt, apiHistory.current);
@@ -1355,7 +1355,7 @@ export default function Hazumi() {
 
   const handleResume = (item) => {
     const itemMode = item.proRole !== null && item.proRole !== undefined ? "pro" : "vision";
-    // アクティブなタスクカードが存在するか確認（unresolved）
+    // アクティブなタスクカードが存在するか確認(unresolved)
     const activeCards = messages.filter(m =>
       (m.type === "pro" || m.type === "vision") && !m.resolved
     );
@@ -1371,26 +1371,19 @@ export default function Hazumi() {
 
   const handleGoHome = () => {
     setPendingItems(prev => {
-      const existingIds = new Set(prev.map(p => String(p.id)));
       const toAdd = [];
       messages.forEach(m => {
         // resolved: "pend" は既に保留済みなのでスキップ
         if (m.resolved === "pend" || m.resolved === "done" || m.resolved === "retried") return;
         if (m.type === "vision" && !m.resolved) {
-          const newId = m.id + "_home";
-          if (!existingIds.has(String(newId))) {
-            toAdd.push({ id: newId, userText: m.userText, action: m.result.action, minutes: m.result.minutes, actualSec: 0, proRole: null, savedAt: fmtDate() });
-          }
+          toAdd.push({ id: uniqueId(), userText: m.userText, action: m.result.action, minutes: m.result.minutes, actualSec: 0, proRole: null, savedAt: fmtDate() });
         }
         if (m.type === "pro" && !m.resolved) {
           // 「できた」後の単一カードのみ保留対象
           const cards = m.cards || [];
           if (cards.length === 1) {
             const c = cards[0];
-            const newId = m.id + "_home_" + c.role;
-            if (!existingIds.has(String(newId))) {
-              toAdd.push({ id: newId, userText: m.userText, action: c.action, minutes: c.minutes, steps: c.steps || [], actualSec: 0, proRole: c.role, savedAt: fmtDate() });
-            }
+            toAdd.push({ id: uniqueId(), userText: m.userText, action: c.action, minutes: c.minutes, steps: c.steps || [], actualSec: 0, proRole: c.role, savedAt: fmtDate() });
           }
         }
       });
@@ -1407,17 +1400,17 @@ export default function Hazumi() {
   const hasMessages = messages.length > 0;
 
   const proExamplesAll = [
-    "重大なミスをしてしまった、どうすればいい？",
-    "顧客からクレームが来た、次の一手は？",
+    "重大なミスをしてしまった、どうすればいい?",
+    "顧客からクレームが来た、次の一手は?",
     "システム障害が起きた、まず何をすべきか",
-    "締め切りに間に合わない、どう対処する？",
-    "上司に怒られた、立て直すには？",
+    "締め切りに間に合わない、どう対処する?",
+    "上司に怒られた、立て直すには?",
     "新しい機能の開発をどこから始めるべきか",
-    "会議で決まらないまま終わった、次は？",
+    "会議で決まらないまま終わった、次は?",
     "タスクが多すぎて何から手をつければいい",
     "企画書を明日までに仕上げないといけない",
     "チームメンバーとうまく連携できていない",
-    "副業を始めたいけど何からやればいい？",
+    "副業を始めたいけど何からやればいい?",
     "転職を考えているが踏み出せない",
     "勉強を習慣化したいのに続かない",
     "メールの返信が溜まって手が付けられない",
@@ -1426,7 +1419,7 @@ export default function Hazumi() {
   // マウント時に1度だけランダム選出して固定
   const proExamples = useMemo(() => [...proExamplesAll].sort(() => Math.random() - 0.5).slice(0, 5), []);
   const visionExamples = visionProfile.description
-    ? ["今日の最優先タスクを教えて", "目標に近づくために今すべきことは？", "ここ最近サボってる、立て直すには？"]
+    ? ["今日の最優先タスクを教えて", "目標に近づくために今すべきことは?", "ここ最近サボってる、立て直すには?"]
     : [];
 
   return (
@@ -1483,7 +1476,7 @@ export default function Hazumi() {
 
 
 
-            {/* プロロールの説明（折りたたみ） */}
+            {/* プロロールの説明(折りたたみ) */}
             {mode === "pro" && (
               <div style={{ width: "100%", marginTop: 20 }}>
                 <button style={{ background: "transparent", border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 12, color: "#94a3b8", fontWeight: 600, display: "flex", alignItems: "center", gap: 4, margin: "0 auto" }}
@@ -1519,7 +1512,7 @@ export default function Hazumi() {
               {msg.ts && <div style={S.msgTs}>{msg.ts}</div>}
               <ProResultGroup group={msg}
                 onDone={(roleId, elapsed, card, note) => handleProDone(roleId, elapsed, card, note)}
-                onPend={(card, elapsed) => handleProPend(card, msg.userText, elapsed)} />
+                onPend={(card, elapsed, pendedStepIdx) => handleProPend(card, msg.userText, elapsed, pendedStepIdx)} />
             </div>
           );
           if (msg.type === "vision") return (
@@ -1553,7 +1546,7 @@ export default function Hazumi() {
 
       {/* Input + サジェスト */}
       <div style={S.inputBar}>
-        {/* サジェスト：入力エリアの直上、チャットがない時だけ表示 */}
+        {/* サジェスト:入力エリアの直上、チャットがない時だけ表示 */}
         {!hasMessages && (mode === "pro" ? proExamples : visionExamples).length > 0 && !input.trim() && (
           <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 8, scrollbarWidth: "none" }}>
             {(mode === "pro" ? proExamples : visionExamples).map(ex => (
@@ -1617,7 +1610,7 @@ export default function Hazumi() {
               <div style={S.confirmTitle}>モードを切り替えて再開</div>
               <div style={S.confirmBody}>
                 <span style={{ color: itemAccent, fontWeight: 700 }}>{itemLabel}</span>のタスクを再開します。
-                現在の<span style={{ fontWeight: 700 }}>{currentLabel}</span>のチャット履歴はどうしますか？
+                現在の<span style={{ fontWeight: 700 }}>{currentLabel}</span>のチャット履歴はどうしますか?
               </div>
               <div style={{ fontSize: 13, color: "#64748b", background: "#f8fafc", borderRadius: 10, padding: "10px 12px", marginBottom: 16, lineHeight: 1.6 }}>
                 「{resumeConfirm.action}」
@@ -1629,7 +1622,7 @@ export default function Hazumi() {
                     const activeCards = messages.filter(m => (m.type === "pro" || m.type === "vision") && !m.resolved);
                     activeCards.forEach(m => {
                       if (m.type === "vision") {
-                        setPendingItems(p => [...p, { id: m.id, userText: m.userText, action: m.result.action, minutes: m.result.minutes, actualSec: 0, proRole: null, savedAt: fmtDate() }]);
+                        setPendingItems(p => [...p, { id: uniqueId(), userText: m.userText, action: m.result.action, minutes: m.result.minutes, actualSec: 0, proRole: null, savedAt: fmtDate() }]);
                       } else if (m.type === "pro") {
                         m.cards?.filter(c => !c.resolved).forEach(c => {
                           setPendingItems(p => [...p, { id: uniqueId(), userText: m.userText, action: c.action, minutes: c.minutes, steps: c.steps || [], actualSec: 0, proRole: c.role, savedAt: fmtDate() }]);
