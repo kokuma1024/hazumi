@@ -54,6 +54,9 @@ const VISION_LOADING_MSGS = [
   "タスクを構成中…",
 ];
 
+const PRO_FOLLOW_UPS = ["次のステップは?", "別の視点で見ると?", "優先順位を整理して", "もっと具体的に教えて", "今日中にやるべきことは?"];
+const VISION_FOLLOW_UPS = ["次に取り組むことは?", "軌道修正するには?", "今日の最優先は?", "もっとシンプルにするには?"];
+
 const PRO_ROLES = [
   { id: "crisis",   name: "クライシス",   en: "Crisis Manager",     emoji: "🚨", color: "#dc2626", desc: "人命・法的リスク・重大損失を避けるための最短初動" },
   { id: "risk",     name: "リスク",       en: "Risk Manager",       emoji: "🛡", color: "#d97706", desc: "証跡確保・コンプライアンス・安全性重視の手順" },
@@ -260,8 +263,6 @@ function useStepTimer(steps, onAllComplete) {
 
   const resumeAt = useCallback((idx, offsetSec = 0) => startStep(idx, offsetSec), [startStep]);
 
-  const [waiting, setWaiting] = useState(false); // 次ステップの待機画面
-
   const nextStep = useCallback(() => {
     cancelAnimationFrame(rafRef.current);
     const next = stepIdx + 1;
@@ -283,7 +284,6 @@ function useStepTimer(steps, onAllComplete) {
     stepIdx, currentStep, elapsed, remaining, isOver, progress, flash,
     started: stepIdx >= 0,
     done: stepIdx === -2,
-    waiting,
     start: () => startStep(0),
     resumeAt, nextStep, startCurrentStep, stop,
     totalSteps: steps?.length || 0,
@@ -696,7 +696,7 @@ function ProRoleCard({ item, collapsed, compact, onDone, onPend, onStart }) {
         <>
           {/* ステップ進捗ドット */}
           <div style={S.stepHeader}>
-            {steps.map((s, i) => (
+            {steps.map((_, i) => (
               <div key={i} style={{
                 ...S.stepDot,
                 background: i <= stepTimer.stepIdx ? roleDef.color : "#e2e8f0",
@@ -1309,7 +1309,7 @@ export default function Hazumi() {
     }
   };
 
-  const handleProDone = async (roleId, elapsed, card, note = "") => {
+  const handleProDone = async (roleId, _elapsed, _card, note = "") => {
     const roleDef = PRO_ROLES.find(r => r.id === roleId);
     const noteClause = note ? `
 補足: ${note}` : "";
@@ -1570,12 +1570,31 @@ export default function Hazumi() {
 
       {/* Input + サジェスト */}
       <div style={S.inputBar}>
-        {/* サジェスト:入力エリアの直上、チャットがない時だけ表示 */}
+        {/* サジェスト: 会話後にフォーカスしたとき */}
+        {hasMessages && isFocused && !input.trim() && !loading && (
+          <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 8, scrollbarWidth: "none" }}>
+            {(mode === "pro" ? PRO_FOLLOW_UPS : VISION_FOLLOW_UPS).map(ex => (
+              <button key={ex} style={S.suggestChip} onMouseDown={e => {
+                e.preventDefault();
+                setInput(ex);
+                setTimeout(() => {
+                  if (taRef.current) {
+                    taRef.current.value = ex;
+                    taRef.current.style.height = "auto";
+                    taRef.current.style.height = Math.min(taRef.current.scrollHeight, 120) + "px";
+                    taRef.current.focus();
+                  }
+                }, 0);
+              }}>{ex}</button>
+            ))}
+          </div>
+        )}
+        {/* サジェスト: 初回（チャット履歴なし） */}
         {!hasMessages && (mode === "pro" ? proExamples : visionExamples).length > 0 && !input.trim() && (
           <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 8, scrollbarWidth: "none" }}>
             {(mode === "pro" ? proExamples : visionExamples).map(ex => (
               <button key={ex} style={S.suggestChip} onMouseDown={e => {
-                e.preventDefault(); // フォーカス移動を防ぐ
+                e.preventDefault();
                 setInput(ex);
                 setTimeout(() => {
                   if (taRef.current) {
