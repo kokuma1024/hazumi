@@ -881,6 +881,7 @@ function ProResultGroup({ group, onDone, onPend }) {
 }
 // ─── SampleProPreview(空状態の結果プレビュー) ────────────────────────────
 function SampleProPreview() {
+  const sampleUserText = "重大なミスをしてしまった、どうすればいい?";
   const sample = {
     roadmap: "初動対応 → 証跡確保 → 関係者連携",
     summary: "影響を最小化するため、初動と記録を最優先で進めます",
@@ -907,70 +908,131 @@ function SampleProPreview() {
   };
 
   return (
-    <div style={{ width: "100%", marginTop: 28, marginBottom: 4 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12, paddingLeft: 4 }}>
-        <span style={{
-          fontSize: 10, fontWeight: 800, color: "white", background: "#94a3b8",
-          borderRadius: 20, padding: "2px 8px", letterSpacing: "0.05em",
-        }}>SAMPLE</span>
-        <span style={{ fontSize: 12, color: "#64748b", fontWeight: 600 }}>
-          こんな結果が返ってきます
-        </span>
-      </div>
+    <div style={{
+      width: "100%",
+      marginTop: 24,
+      background: "#f8fafc",
+      border: "1px dashed #cbd5e1",
+      borderRadius: 16,
+      padding: "10px 12px 14px",
+      position: "relative",
+    }}>
+      {/* サンプルラベル */}
       <div style={{
-        width: "100%", display: "flex", flexDirection: "column", gap: 8,
-        opacity: 0.72, pointerEvents: "none", userSelect: "none",
+        display: "inline-block",
+        fontSize: 10, fontWeight: 800, color: "#64748b",
+        background: "white", border: "1px solid #e2e8f0",
+        borderRadius: 20, padding: "2px 10px",
+        letterSpacing: "0.06em", marginBottom: 10,
+      }}>
+        SAMPLE · 入力するとこう返ってきます
+      </div>
+
+      {/* サンプルのユーザー入力 */}
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 10 }}>
+        <div style={{
+          background: "white",
+          borderRadius: "14px 14px 4px 14px",
+          padding: "7px 12px",
+          fontSize: 12, color: "#475569",
+          maxWidth: "82%", lineHeight: 1.5,
+          boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+        }}>
+          {sampleUserText}
+        </div>
+      </div>
+
+      {/* 結果プレビュー(縮小版) */}
+      <div style={{
+        display: "flex", flexDirection: "column", gap: 6,
+        pointerEvents: "none", userSelect: "none",
       }}>
         {/* ロードマップ */}
-        <div style={S.roadmapCard}>
-          <div style={S.roadmapRow}>
-            <span style={S.roadmapLabel}>🗺 ロードマップ</span>
-            <span style={S.roadmapText}>{sample.roadmap}</span>
+        <div style={{
+          background: "white", borderRadius: 12,
+          padding: "8px 10px", border: "1px solid #dbeafe",
+        }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 2, marginBottom: 4 }}>
+            <span style={{
+              fontSize: 9, fontWeight: 700, color: "#2563eb",
+              textTransform: "uppercase", letterSpacing: "0.07em",
+            }}>🗺 ロードマップ</span>
+            <span style={{ fontSize: 12, color: "#1e293b", fontWeight: 600, lineHeight: 1.5 }}>
+              {sample.roadmap}
+            </span>
           </div>
-          <div style={S.summaryText}>{sample.summary}</div>
+          <div style={{
+            fontSize: 11, color: "#64748b", lineHeight: 1.5,
+            borderTop: "1px solid #e2e8f0", paddingTop: 5, marginTop: 3,
+          }}>
+            {sample.summary}
+          </div>
         </div>
+
         {/* グループラベル */}
-        <div style={S.proGroupLabel}>
-          <span style={S.proGroupDot} />
+        <div style={{
+          display: "flex", alignItems: "center", gap: 6,
+          fontSize: 10, color: "#94a3b8", fontWeight: 700,
+          textTransform: "uppercase", letterSpacing: "0.07em",
+          paddingLeft: 2, marginTop: 2,
+        }}>
+          <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#2563eb" }} />
           {sample.cards.length}つの視点から提案
-          <span style={{ color: "#94a3b8", fontWeight: 400 }}>· 優先順位順</span>
+          <span style={{ color: "#cbd5e1", fontWeight: 400 }}>· 優先順位順</span>
         </div>
-        {/* カード群 */}
+
+        {/* カード群(縮小) */}
         {sample.cards.map((c, i) => {
           const roleDef = PRO_ROLES.find(r => r.id === c.role);
           return (
-            <div key={i} style={{ ...S.proCard, borderLeftColor: roleDef.color }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+            <div key={i} style={{
+              background: "white",
+              borderRadius: "3px 12px 12px 12px",
+              padding: "9px 11px 10px",
+              borderLeft: `3px solid ${roleDef.color}`,
+              boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 4 }}>
                 <span style={{
                   background: c.priority === "高" ? "#ef4444" : c.priority === "中" ? "#f59e0b" : "#94a3b8",
-                  color: "white", fontSize: 10, fontWeight: 800, borderRadius: 20,
-                  padding: "1px 8px", flexShrink: 0,
+                  color: "white", fontSize: 9, fontWeight: 800, borderRadius: 20,
+                  padding: "0px 6px", flexShrink: 0,
                 }}>{c.priority}</span>
-                <span style={{ ...S.proRoleTag, color: roleDef.color, marginBottom: 0 }}>
+                <span style={{
+                  display: "flex", alignItems: "center", gap: 4,
+                  fontSize: 11, fontWeight: 800, color: roleDef.color,
+                  textTransform: "uppercase", letterSpacing: "0.06em",
+                }}>
                   {roleDef.emoji} {roleDef.name}
-                  <span style={S.proRoleEn}>{roleDef.en}</span>
                 </span>
                 <span style={{
-                  ...S.minPill, background: roleDef.color + "15", color: roleDef.color,
-                  marginLeft: "auto", flexShrink: 0,
+                  fontSize: 11, fontWeight: 700, borderRadius: 20,
+                  padding: "1px 9px", flexShrink: 0,
+                  background: roleDef.color + "15", color: roleDef.color,
+                  marginLeft: "auto",
                 }}>⏱ {c.minutes}分</span>
               </div>
-              <div style={S.proAction}>{c.action}</div>
               <div style={{
-                display: "flex", alignItems: "center", gap: 6,
+                fontSize: 13, fontWeight: 800, color: "#0f172a",
+                lineHeight: 1.4, marginBottom: 6,
+              }}>
+                {c.action}
+              </div>
+              <div style={{
+                display: "flex", alignItems: "center", gap: 5,
                 background: roleDef.color + "08",
                 border: `1px solid ${roleDef.color}30`,
-                borderRadius: 10, padding: "8px 10px", marginTop: 8,
+                borderRadius: 8, padding: "5px 8px",
               }}>
                 <span style={{
-                  fontSize: 10, fontWeight: 800, color: "white",
+                  fontSize: 9, fontWeight: 800, color: "white",
                   background: roleDef.color, borderRadius: 20,
-                  padding: "1px 7px", flexShrink: 0,
+                  padding: "0px 6px", flexShrink: 0,
                 }}>助走</span>
-                <span style={{ fontSize: 13, fontWeight: 700, color: "#1e293b", flex: 1, lineHeight: 1.4 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: "#1e293b", flex: 1, lineHeight: 1.4 }}>
                   {c.firstStep.action}
                 </span>
-                <span style={{ fontSize: 10, color: "#94a3b8", flexShrink: 0 }}>
+                <span style={{ fontSize: 9, color: "#94a3b8", flexShrink: 0 }}>
                   {c.firstStep.seconds}秒
                 </span>
               </div>
