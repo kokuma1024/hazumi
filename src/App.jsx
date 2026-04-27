@@ -879,7 +879,108 @@ function ProResultGroup({ group, onDone, onPend }) {
     </div>
   );
 }
+// ─── SampleProPreview(空状態の結果プレビュー) ────────────────────────────
+function SampleProPreview() {
+  const sample = {
+    roadmap: "初動対応 → 証跡確保 → 関係者連携",
+    summary: "影響を最小化するため、初動と記録を最優先で進めます",
+    cards: [
+      {
+        role: "crisis", priority: "高",
+        action: "影響範囲を3行でメモに書き出す",
+        minutes: 3,
+        firstStep: { action: "メモアプリを開く", seconds: 15 },
+      },
+      {
+        role: "risk", priority: "中",
+        action: "発生時刻と操作内容をスクショで残す",
+        minutes: 5,
+        firstStep: { action: "スクショの準備をする", seconds: 20 },
+      },
+      {
+        role: "cs", priority: "中",
+        action: "影響を受ける関係者を一覧化する",
+        minutes: 5,
+        firstStep: { action: "ノートに名前欄を作る", seconds: 15 },
+      },
+    ],
+  };
 
+  return (
+    <div style={{ width: "100%", marginTop: 28, marginBottom: 4 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12, paddingLeft: 4 }}>
+        <span style={{
+          fontSize: 10, fontWeight: 800, color: "white", background: "#94a3b8",
+          borderRadius: 20, padding: "2px 8px", letterSpacing: "0.05em",
+        }}>SAMPLE</span>
+        <span style={{ fontSize: 12, color: "#64748b", fontWeight: 600 }}>
+          こんな結果が返ってきます
+        </span>
+      </div>
+      <div style={{
+        width: "100%", display: "flex", flexDirection: "column", gap: 8,
+        opacity: 0.72, pointerEvents: "none", userSelect: "none",
+      }}>
+        {/* ロードマップ */}
+        <div style={S.roadmapCard}>
+          <div style={S.roadmapRow}>
+            <span style={S.roadmapLabel}>🗺 ロードマップ</span>
+            <span style={S.roadmapText}>{sample.roadmap}</span>
+          </div>
+          <div style={S.summaryText}>{sample.summary}</div>
+        </div>
+        {/* グループラベル */}
+        <div style={S.proGroupLabel}>
+          <span style={S.proGroupDot} />
+          {sample.cards.length}つの視点から提案
+          <span style={{ color: "#94a3b8", fontWeight: 400 }}>· 優先順位順</span>
+        </div>
+        {/* カード群 */}
+        {sample.cards.map((c, i) => {
+          const roleDef = PRO_ROLES.find(r => r.id === c.role);
+          return (
+            <div key={i} style={{ ...S.proCard, borderLeftColor: roleDef.color }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+                <span style={{
+                  background: c.priority === "高" ? "#ef4444" : c.priority === "中" ? "#f59e0b" : "#94a3b8",
+                  color: "white", fontSize: 10, fontWeight: 800, borderRadius: 20,
+                  padding: "1px 8px", flexShrink: 0,
+                }}>{c.priority}</span>
+                <span style={{ ...S.proRoleTag, color: roleDef.color, marginBottom: 0 }}>
+                  {roleDef.emoji} {roleDef.name}
+                  <span style={S.proRoleEn}>{roleDef.en}</span>
+                </span>
+                <span style={{
+                  ...S.minPill, background: roleDef.color + "15", color: roleDef.color,
+                  marginLeft: "auto", flexShrink: 0,
+                }}>⏱ {c.minutes}分</span>
+              </div>
+              <div style={S.proAction}>{c.action}</div>
+              <div style={{
+                display: "flex", alignItems: "center", gap: 6,
+                background: roleDef.color + "08",
+                border: `1px solid ${roleDef.color}30`,
+                borderRadius: 10, padding: "8px 10px", marginTop: 8,
+              }}>
+                <span style={{
+                  fontSize: 10, fontWeight: 800, color: "white",
+                  background: roleDef.color, borderRadius: 20,
+                  padding: "1px 7px", flexShrink: 0,
+                }}>助走</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: "#1e293b", flex: 1, lineHeight: 1.4 }}>
+                  {c.firstStep.action}
+                </span>
+                <span style={{ fontSize: 10, color: "#94a3b8", flexShrink: 0 }}>
+                  {c.firstStep.seconds}秒
+                </span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 // ─── ContextBubble(再開時の経緯パネル) ────────────────────────────────────────
 function ContextBubble({ msg }) {
   const [open, setOpen] = useState(false);
@@ -1497,7 +1598,7 @@ export default function Hazumi() {
               )
             )}
 
-
+{mode === "pro" && <SampleProPreview />}
 
 
             {/* プロロールの説明(折りたたみ) */}
