@@ -1,83 +1,75 @@
-# hazumi
+# HAZUMI ⚡
 
-即タスク実行サポートアプリ。やることが浮かんだ瞬間に、考え込まずに動き出せる状態へ持っていくためのツール。
+動き出すための、最高のきっかけ。
 
-## 目的
+課題をそのまま入力するだけで、AI が今すぐ実行できるアクションと時間を提案します。
 
-「やる気はあるけど、最初の一歩が重い」を最小化する。タスクを書き出した直後に *小さく着手する形* に整え、迷い時間ゼロで実行に入れることを目指す。
+## 機能
+
+- **HAZUMI Pro** — 状況を分析し、7種のロール（クライシス/リスク/エグゼクティブ/CS/アーキテクト/スペシャリスト/メンター）から最適な 2〜4 役を自動選択。ロールごとに「助走タスク → メインタスク」のステップと内蔵タイマーを提供
+- **ビジョンモード** — 「理想の自己像」プロファイルを設定し、自分の美学・目標に沿った最善手を 1 つ提案
+- **保留機能** — 中断したタスクを保存し、後で続きから再開
 
 ## 技術スタック
 
 | 領域 | 採用技術 |
 |---|---|
-| フロントエンド | Vite |
+| フロントエンド | React 18 + Vite |
+| スタイリング | CSS-in-JS（inline styles） |
+| API プロキシ | Vercel Edge Function (`api/claude.js`) |
+| AI モデル | Anthropic Claude Sonnet / Haiku |
 | ホスティング | Vercel |
-| API | Vercel Serverless Functions（`api/` ディレクトリ） |
-| 言語・フレームワーク | （`src/` 内で確認 — React / Vue / 素の JS のいずれか） |
-
-## ディレクトリ構成
-
-```
-hazumi/
-├── api/             # Vercel Serverless Functions
-├── src/             # フロントエンドのソース
-├── index.html       # エントリーポイント
-├── package.json     # 依存・スクリプト
-├── vercel.json      # Vercel デプロイ設定
-├── vite.config.js   # Vite ビルド設定
-└── CLAUDE.md        # AI 補助用のプロジェクトノート
-```
+| 状態永続化 | localStorage |
 
 ## ローカル開発
 
-前提: Node.js 18 以上を推奨。
+**前提:** Node.js 18 以上
 
 ```bash
-# 依存をインストール
+# 1. リポジトリをクローン
+git clone <repo-url>
+cd hazumi
+
+# 2. 依存をインストール
 npm install
 
-# 開発サーバーを起動
+# 3. 環境変数を設定
+cp .env.example .env.local
+# .env.local を編集して ANTHROPIC_API_KEY を入力
+
+# 4. 開発サーバーを起動
 npm run dev
-
-# 本番ビルド
-npm run build
-
-# ビルド結果をプレビュー
-npm run preview
+# → http://localhost:5173
 ```
-
-開発サーバーは通常 `http://localhost:5173` で起動する。
-
-## Vercel へのデプロイ
-
-`main` ブランチへのプッシュで自動デプロイされる構成。手動で動作確認する場合は:
-
-```bash
-npm install -g vercel
-vercel        # プレビューデプロイ
-vercel --prod # 本番デプロイ
-```
-
-環境変数は Vercel ダッシュボードの **Settings → Environment Variables** で設定する。
 
 ## 環境変数
 
-`api/` 内のサーバーレス関数で使う環境変数を必要に応じて `.env.local` に記載する（リポジトリにはコミットしない）:
+| 変数名 | 必須 | 説明 |
+|---|---|---|
+| `ANTHROPIC_API_KEY` | ✅ | Anthropic API キー（[取得先](https://console.anthropic.com/)） |
+| `ALLOWED_ORIGINS` | ✅ | 本番 URL（例: `https://hazumi.vercel.app`） |
+| `ALLOW_VERCEL_PREVIEW` | — | `true` にするとプレビューデプロイを許可 |
 
+`.env.example` に雛形があります。
+
+## Vercel へのデプロイ
+
+`main` ブランチへの push で自動デプロイ。Vercel ダッシュボードの **Settings → Environment Variables** で環境変数を設定してください。
+
+```bash
+# 手動デプロイ
+npx vercel        # プレビュー
+npx vercel --prod # 本番
 ```
-# 例
-OPENAI_API_KEY=...
-```
 
-## 開発メモ
+## セキュリティ設計
 
-- AI 開発支援用に `CLAUDE.md` をプロジェクト直下に配置している。プロジェクトの背景や設計判断はそちらに集約。
-- 個人開発のため、ブランチ運用は `main` 直 push を基本とする。
+- API キーはサーバーサイド（Edge Function）のみで保持。クライアントには露出しない
+- Origin ホワイトリストによる不正ドメインからのアクセス拒否
+- IP 単位のレート制限（15 req/分・200 req/日）
+- リクエストサイズ上限 50 KB、システムプロンプト 8000 文字、メッセージ 4000 文字
+- レスポンスに CSP・HSTS・X-Frame-Options 等のセキュリティヘッダーを付与
 
 ## ライセンス
 
-未定（個人開発、現時点では非公開での運用を想定）。
-
----
-
-> このリポジトリは個人開発プロジェクトです。バグ報告・要望は GitHub Issues へ。
+MIT

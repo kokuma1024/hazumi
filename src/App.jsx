@@ -90,7 +90,19 @@ const fmtDate = () => {
   const d = new Date();
   return d.getFullYear() + " " + String(d.getMonth()+1).padStart(2,"0") + "/" + String(d.getDate()).padStart(2,"0") + " " + String(d.getHours()).padStart(2,"0") + ":" + String(d.getMinutes()).padStart(2,"0") + " 提案";
 };
-const loadState  = () => { try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "null"); } catch { return null; } };
+function loadState() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+    if (!raw || typeof raw !== "object") return null;
+    return {
+      mode: raw.mode === "vision" ? "vision" : "pro",
+      visionProfile: (raw.visionProfile && typeof raw.visionProfile === "object")
+        ? { name: String(raw.visionProfile.name || ""), description: String(raw.visionProfile.description || "") }
+        : { name: "", description: "" },
+      pendingItems: Array.isArray(raw.pendingItems) ? raw.pendingItems : [],
+    };
+  } catch { return null; }
+}
 const saveState  = (s) => { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); } catch {} };
 const fmt = (sec) => { const m = Math.floor(Math.abs(sec) / 60); const s = Math.abs(sec) % 60; return `${m}:${String(s).padStart(2, "0")}`; };
 
@@ -1559,18 +1571,19 @@ export default function Hazumi() {
   const handleGoHome = () => {
     setPendingItems(prev => {
       const toAdd = [];
+      const historySnapshot = buildHistorySummary(messages);
       messages.forEach(m => {
         // resolved: "pend" は既に保留済みなのでスキップ
         if (m.resolved === "pend" || m.resolved === "done" || m.resolved === "retried") return;
         if (m.type === "vision" && !m.resolved) {
-          toAdd.push({ id: uniqueId(), userText: m.userText, action: m.result.action, minutes: m.result.minutes, actualSec: 0, proRole: null, savedAt: fmtDate() });
+          toAdd.push({ id: uniqueId(), userText: m.userText, action: m.result.action, minutes: m.result.minutes, actualSec: 0, proRole: null, savedAt: fmtDate(), historySnapshot });
         }
         if (m.type === "pro" && !m.resolved) {
           // 「できた」後の単一カードのみ保留対象
           const cards = m.cards || [];
           if (cards.length === 1) {
             const c = cards[0];
-            toAdd.push({ id: uniqueId(), userText: m.userText, action: c.action, minutes: c.minutes, steps: c.steps || [], actualSec: 0, proRole: c.role, savedAt: fmtDate() });
+            toAdd.push({ id: uniqueId(), userText: m.userText, action: c.action, minutes: c.minutes, steps: c.steps || [], actualSec: 0, proRole: c.role, savedAt: fmtDate(), historySnapshot });
           }
         }
       });
@@ -1787,9 +1800,16 @@ export default function Hazumi() {
             }}
             onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
           />
-          <button
-            style={{ ...S.sendBtn, background: input.trim() && !loading ? modeAccent : "#e2e8f0", color: input.trim() && !loading ? "white" : "#94a3b8", width: 42, height: 42, borderRadius: 14, fontSize: 20, transition: "background 0.2s, color 0.2s" }}
-            onClick={sendMessage} disabled={!input.trim() || loading}>↑</button>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4, flexShrink: 0 }}>
+            {input.length >= 3000 && (
+              <span style={{ fontSize: 10, color: input.length >= 4000 ? "#ef4444" : "#f59e0b", fontWeight: 700, lineHeight: 1 }}>
+                {input.length}/4000
+              </span>
+            )}
+            <button
+              style={{ ...S.sendBtn, background: input.trim() && !loading ? modeAccent : "#e2e8f0", color: input.trim() && !loading ? "white" : "#94a3b8", width: 42, height: 42, borderRadius: 14, fontSize: 20, transition: "background 0.2s, color 0.2s" }}
+              onClick={sendMessage} disabled={!input.trim() || loading || input.length > 4000}>↑</button>
+          </div>
         </div>
       </div>
 
