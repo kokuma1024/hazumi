@@ -14,7 +14,7 @@
 
 | 領域 | 採用技術 |
 |---|---|
-| フロントエンド | React 18 + Vite |
+| フロントエンド | React 18 + Vite + TypeScript |
 | スタイリング | CSS-in-JS（inline styles） |
 | API プロキシ | Vercel Edge Function (`api/claude.js`) |
 | AI モデル | Anthropic Claude Sonnet / Haiku |

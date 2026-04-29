@@ -49,8 +49,8 @@
 
 ### 技術リファクタ
 
-- [ ] `App.jsx`（約 1820 行）を分割：UI コンポーネント / フック / API ラッパーを別ファイルへ
-- [ ] TypeScript への段階移行（分割後に `.tsx` 化、API レスポンス型を明示）
+- [x] `App.jsx`（約 1820 行）を分割：コンポーネント 10 本 / フック 2 本 / API ラッパー / 定数・ユーティリティ・スタイル を別ファイルへ
+- [x] TypeScript への移行（全 `.js/.jsx` を `.ts/.tsx` 化、`src/types.ts` に共通型定義、API レスポンス型・Messageユニオン型を明示）
 - [ ] Tailwind CSS への移行（末尾 `S` オブジェクトの inline CSS-in-JS を置き換え）
 - [ ] `useTimer` と `useStepTimer` の責務整理（重複ロジックの統合）
 
@@ -94,12 +94,12 @@ v1.0 を出した後で必要になったら考える。今は決めない。
 
 ## 技術的な負債候補（観測ポイント）
 
-- **`App.jsx` 1820 行**: v1.0 リファクタの最優先項目。分割しないまま TypeScript 化に入ると詰む
 - **`useTimer` と `useStepTimer` の重複**: 単一ステップは「2 ステップ目だけ」と見なせば `useStepTimer` に寄せられる
+- **Tailwind CSS 未移行**: `src/styles/index.ts` の `S` オブジェクト（inline CSS-in-JS）が残存。v1.0 完了後に置き換え予定
 - **Anthropic API コスト**: Edge Function 側のレート制限はあるが、月次の使用量モニタリングが未整備
 - **`localStorage` キー `hazumi_v1` のスキーマ変更**: フィールド追加時の後方互換ロジックは現状ゆるい（`loadState` でのデフォルト値補完のみ）
 - **`api/claude.js` の cold start**: Edge Function なので軽いが、関数を増やす場合は経路を分ける検討
 
 ---
 
-最終更新: 2026-04-29
+最終更新: 2026-04-30
