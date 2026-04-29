@@ -103,6 +103,8 @@ function jsonResponse(data, status, extraHeaders = {}) {
     headers: {
       'Content-Type': 'application/json',
       'Cache-Control': 'no-store',
+      'X-Content-Type-Options': 'nosniff',
+      'X-Frame-Options': 'DENY',
       ...extraHeaders,
     },
   });
@@ -175,6 +177,12 @@ export default async function handler(req) {
     return jsonResponse({ error: 'Method Not Allowed' }, 405, headers);
   }
 
+  // Content-Type 検証
+  const contentType = req.headers.get('content-type') || '';
+  if (!contentType.includes('application/json')) {
+    return jsonResponse({ error: 'Content-Type must be application/json' }, 415, headers);
+  }
+
   // 1. Origin検証(本番で未許可のドメインからのアクセスは拒否)
   //    localhostでのテスト時や、同一ドメインのSSR時はOriginヘッダが空になる場合があるため、
   //    空Originは許可(ただし本番では必ずOriginが付くブラウザ経由のみを想定)
@@ -199,10 +207,14 @@ export default async function handler(req) {
     );
   }
 
-  // 4. ボディパース
+  // 4. ボディパース(実際のボディサイズも制限)
   let raw;
   try {
-    raw = await req.json();
+    const bodyText = await req.text();
+    if (bodyText.length > MAX_REQUEST_BYTES) {
+      return jsonResponse({ error: 'Request too large' }, 413, headers);
+    }
+    raw = JSON.parse(bodyText);
   } catch {
     return jsonResponse({ error: 'Invalid JSON' }, 400, headers);
   }

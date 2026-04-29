@@ -1892,7 +1892,6 @@ export default function Hazumi() {
       )}
 
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap');
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         body { background: #f8fafc; }
         textarea { font-family: inherit; }
