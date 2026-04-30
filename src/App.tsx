@@ -5,12 +5,12 @@ import { callProMode, callVisionMode } from "./api/claude";
 import { S } from "./styles";
 import { SingleActionCard } from "./components/SingleActionCard";
 import { ProResultGroup } from "./components/ProResultGroup";
-import { SampleProPreview } from "./components/SampleProPreview";
 import { ContextBubble } from "./components/ContextBubble";
 import { UserBubble } from "./components/UserBubble";
 import { MenuDrawer } from "./components/MenuDrawer";
 import { VisionEditor } from "./components/VisionEditor";
 import { PendingSheet } from "./components/PendingSheet";
+import { OnboardingSlides } from "./components/OnboardingSlides";
 import type {
   Mode, Message, PendingItem, VisionMessage, ProMessage,
   ConversationMessage, VisionResult, ProCard, VisionProfile,
@@ -30,7 +30,18 @@ export default function Hazumi() {
   const [showVisionEdit, setShowVisionEdit] = useState(false);
   const [isFocused, setIsFocused]     = useState(false);
   const [resumeConfirm, setResumeConfirm] = useState<PendingItem | null>(null);
-  const [roleOpen, setRoleOpen]       = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
+useEffect(() => {
+  if (!localStorage.getItem("hazumi.onboarded")) {
+    setShowOnboarding(true);
+  }
+}, []);
+
+const closeOnboarding = () => {
+  setShowOnboarding(false);
+  localStorage.setItem("hazumi.onboarded", "1");
+};
   const chatAreaRef  = useRef<HTMLDivElement>(null);
   const latestMsgRef = useRef<HTMLDivElement>(null);
   const inputRef     = useRef<HTMLTextAreaElement | null>(null);
@@ -330,7 +341,13 @@ export default function Hazumi() {
           </span>
           {hasMessages && <span style={{ fontSize: 11, color: modeAccent + "88" }}>↩</span>}
         </button>
-        <div style={{ width: 40 }} />
+        <button
+          style={S.menuBtn}
+          onClick={() => setShowOnboarding(true)}
+          aria-label="使い方"
+        >
+          <span style={{ fontSize: 18, color: "#334155", fontWeight: 700 }}>?</span>
+        </button>
       </header>
 
       <div ref={chatAreaRef} style={S.chatArea}>
@@ -362,30 +379,6 @@ export default function Hazumi() {
               )
             )}
 
-            {mode === "pro" && <SampleProPreview />}
-
-            {mode === "pro" && (
-              <div style={{ width: "100%", marginTop: 20 }}>
-                <button style={{ background: "transparent", border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 12, color: "#94a3b8", fontWeight: 600, display: "flex", alignItems: "center", gap: 4, margin: "0 auto" }}
-                  onClick={() => setRoleOpen(v => !v)}>
-                  {roleOpen ? "▲ ロール一覧を閉じる" : "▼ 自動選別されるロールを見る"}
-                </button>
-                <div style={{ maxHeight: roleOpen ? "600px" : "0px", overflow: "hidden", transition: "max-height 0.3s ease" }}>
-                  <div style={{ paddingTop: 12 }}>
-                    {PRO_ROLES.map(r => (
-                      <div key={r.id} style={S.roleHint}>
-                        <span style={{ color: r.color, fontSize: 16, flexShrink: 0 }}>{r.emoji}</span>
-                        <div>
-                          <span style={{ fontSize: 13, fontWeight: 700, color: r.color }}>{r.name}</span>
-                          <span style={{ fontSize: 11, color: "#64748b", marginLeft: 6 }}>{r.en}</span>
-                          <div style={{ fontSize: 12, color: "#475569", marginTop: 2, lineHeight: 1.5 }}>{r.desc}</div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         )}
 
@@ -604,6 +597,8 @@ export default function Hazumi() {
           onDelete={id => setPendingItems(prev => prev.filter(p => p.id !== id))}
           onClose={() => setShowPending(false)} />
       )}
+
+      {showOnboarding && <OnboardingSlides onClose={closeOnboarding} />}
 
       <style>{`
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
